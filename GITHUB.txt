@@ -1,0 +1,132 @@
+GITHUB README -->
+
+This is a setup guide for those struggling to get a plex/jellyfin stack up and running (with nvidia)
+
+I created an optional install script that aims to resolve a few common issues I experienced during installation:
+
+Dependancies, this installs common depenencies needed for the stack including:
+
+python3-setuptools
+docker.io
+docker-compose
+
+
+Things you need to do:
+
+- Install nvidia driver. Link to guide from JellyFin setup
+
+
+- Download mullvad vpn WireGuard config:
+When getting the wiregaurd information ensure to download the JSON file, the private key that is presented in the browser is NOT the key you will be using.
+
+
+
+
+Setup guide 1:
+- Install nvidia drivers
+
+
+
+Setup guide 2:
+Not using install script:
+- Install nvidia drivers
+- Clone repository
+- Ensure dependancies are installed already
+- Edit .env file to include:
+{base path} . Where you want your config's and library to be kept
+{ip address} . Your LAN IP address
+{tz}. Your timezone
+
+https://github.com/Morzomb/All-jellyfin-media-server/tree/Main/compose_files
+
+Testing VPN functionality: (METHOD1)
+it is important to test VPN functionality to ensure there are no misconfigurations. Failure to do so may alret your ISP that you are downloading torrents, which may be against their TOS
+To ensure the functionality is working as intented we will configure a firefox docker container which sends its traffic through gluetun. If it is working properly you can navigate to mullvad.net,
+where you can test.
+
+Testing VPN functionality: (METHOD2)
+#Get shell inside qbittorrent container
+docker exec -it qbittorrent /bin/bash
+#Get public IP
+curl -4 icanhazip.com
+#exit
+exit
+
+*Make sure you compare curl -4 on host computer and container to verify that public IP of qbittorrent is different
+
+
+Service URL's
+
+
+Powershell script to open all URL's in firefox
+
+
+## NOTES FOR ME
+
+Script:
+#CHECKS
+1. Check if root
+2. Check if software installed
+3. Check if nvidia drivers installed (if not exit)
+4. Check if mullvad.json file exists (not actual name of file, search for .json?) in cwd.
+5. Run docker compose on .yaml file 
+6. Shutdown Qbittorrent
+7. Edit Qbittorrent config file (to correct password)
+8. Start Qbittorrent
+9. Verify containers are running, no issues
+10. Print service URL's
+PULL REPO (COMPOSE/ENV FILES)
+get env variables from user? (get user to put mullvad.json in same dir??) read from mullvad.json set other vars, so should only need:
+IP ADDRESS
+BASE PATH
+
+POST INSTALL GUIDE:
+Link to: https://github.com/Morzomb/All-jellyfin-media-server
+
+#IF YOU DO THIS MAKE SURE YOU CHANGE PORT ON ONE SERVICE. BOTH USE :5800
+Ensure Jdownloader2 is part of the stack (or change port for this)
+Maybe put FF as part of the stack (Dont do this) 
+
+Also need small script to stop DL functions
+
+
+And more guides
+
+Starting all containers:
+doccker-compose -f custom-mullvad.yaml up -d
+
+Stoping all containers: 
+docker-compose -f custom-mullvad.yaml down
+
+Stoping certain container:
+docker stop qbittorrent
+
+Starting individual container:
+docker start qbittorrent
+
+Restarting:
+docker restart qbittorrent
+
+GUIDE:
+guide for changing base path (shutdown container)
+guide for editing config files (shutdown container)
+
+
+To do:
+- Add jdonwloader-2 to .yaml
+- Add ability to deploy FF in vpn context for testing
+- Script to set .env (?)
+- Service URL printing
+- Guides for:
+1. Downloading mullvad .json
+2. Testing VPN (FF && CURL)
+3. Installing dependancies
+4. Installing nvidia drivers
+5. Qbittorrent manual reconfigure (PASSWORD PROBLEM)
+6. Post install guide (use ultimate guides)
+7. Test with a plex container && overseerr
+8. PLEX HAS DIFFERENT REQUIRMENTS (INCLUDING PLEX_CLAIM TOKEN)
+
+
+ALSO FOR PLEX:
+https://tizutech.com/plex-transcoding-with-docker-nvidia-gpu/

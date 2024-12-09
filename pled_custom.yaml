@@ -1,0 +1,173 @@
+┌──(root㉿BT-XU)-[/home/bt/docker_scripts/custom_yaml/compose_files]
+└─# cat custom-jellyfin-mull.yaml
+---
+version: "3.3"
+services:
+  gluetun:
+    container_name: gluetun
+    image: qmcgaw/gluetun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 8080:8080
+      - 51420:51420
+      - 51420:51420/udp
+      - 5800:5800/tcp
+    environment:
+      - VPN_SERVICE_PROVIDER=mullvad
+      - VPN_TYPE=wireguard
+      - WIREGUARD_PRIVATE_KEY=<PRIVATE_KEY>
+      - WIREGUARD_ADDRESSES="<IP>/<CIDR>"
+      - DNS_ADDRESS="<IP>"
+      - SERVER_CITIES="Seattle WA"
+    restart: always
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    network_mode: service:gluetun
+    container_name: qbittorrent
+    environment:
+      - WEBUI_PORT=8080
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/qbittorrent:/config
+      - ${COMMON_PATH}/qbittorrent/downloads:/downloads
+    restart: unless-stopped
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_HTML=${LOG_HTML:-false}
+      - CAPTCHA_SOLVER=${CAPTCHA_SOLVER:-none}
+      - TZ=${TZ}
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}/configs/prowlarr:/config
+    ports:
+      - 9696:9696
+    restart: unless-stopped
+
+  jackett:
+    image: lscr.io/linuxserver/jackett:latest
+    container_name: jackett
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}/configs/jackett:/config
+    ports:
+      - 9117:9117
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/sonarr:/config
+      - ${COMMON_PATH}/sonarr/tv:/tv
+      - ${COMMON_PATH}/qbittorrent/downloads:/downloads
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}:${COMMON_PATH}
+      - ${COMMON_PATH}/configs/radarr:/config
+      - ${COMMON_PATH}/radarr/movies:/movies
+      - ${COMMON_PATH}/qbittorrent/downloads:/downloads
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+#CHANGES
+  plex:
+    image: lscr.io/linuxserver/plex:latest
+    container_name: plex
+    network_mode: host
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+    environment:
+      - PUID=0
+      - PGID=0
+      - VERSION=docker
+      - PLEX_CLAIM=##CLAIM-TOKEN##
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,video,utility
+    volumes:
+      - ${COMMON_PATH}/configs/plex:/config
+      - ${COMMON_PATH}/sonarr/tv:/tv
+      - ${COMMON_PATH}/radarr/movies:/movies
+      #ADD JDOWNLOADER HERE?
+      - ${COMMON_PATH}:${COMMON_PATH}
+    restart: unless-stopped
+    
+   overseerr:
+    image: lscr.io/linuxserver/overseerr:latest
+    container_name: overseerr
+    environment:
+      - PUID=${PUID}
+      - PGID=${GUID}
+      - TZ=${TZ}
+    volumes:
+      - ${COMMON_PATH}/configs/overseerr:/config
+      - ${COMMON_PATH}/media:/share
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+    
+    #END CHANGES
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    container_name: portainer
+    ports:
+      - 9443:9443
+    volumes:
+      - ${COMMON_PATH}/configs/portainer:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    
+   jdownloader-2:
+    image: jlesage/jdownloader-2
+    container_name: jdownloader-2
+    ports:
+      - 5800:5800
+    volumes:
+      - ${COMMON_PATH}/configs/jdownloader-2:/config:rw
+      - ${COMMON_PATH}/jdownloader-2/downloads:/output:rw
+      restart: unless-stopped
+      
